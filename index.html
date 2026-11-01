@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Waveify Music</title>
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#8b5cf6">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- iOS Safari PWA Meta Tags (Tam ekran üçün) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Waveify">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%238b5cf6'/><path d='M30 65 V35 L70 25 V55 M30 50 L70 40 M30 65 A8 8 0 1 1 22 57 A8 8 0 0 1 30 65 M70 55 A8 8 0 1 1 62 47 A8 8 0 0 1 70 55' stroke='white' stroke-width='6' fill='white' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+
+  <style>
+    :root {
+      --bg-dark: #0e0d17;
+      --bg-surface: #191828;
+      --bg-surface-elevated: #242238;
+      --primary: #9333ea;
+      --primary-light: #a855f7;
+      --accent: #c084fc;
+      --text: #ffffff;
+      --text-muted: #9ca3af;
+      --border: rgba(255, 255, 255, 0.08);
+      --safe-bottom: env(safe-area-inset-bottom, 16px);
+      --safe-top: env(safe-area-inset-top, 20px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text);
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding-top: var(--safe-top);
+    }
+
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px 16px 140px 16px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .brand-title {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #a855f7, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 22px 0 12px 0;
+    }
+
+    .genres-scroll {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      margin: 0 -16px 20px -16px;
+      padding: 0 16px;
+      scrollbar-width: none;
+    }
+    .genres-scroll::-webkit-scrollbar { display: none; }
+    .genre-chip {
+      background: var(--bg-surface);
+      color: var(--accent);
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .genre-chip.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .track-item {
+      display: flex;
+      align-items: center;
+      background: var(--bg-surface);
+      padding: 10px 12px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .track-item:active {
+      background: var(--bg-surface-elevated);
+      transform: scale(0.98);
+    }
+    .track-cover {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      object-fit: cover;
+      margin-right: 12px;
+      background: #2a2742;
+    }
+    .track-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .track-name {
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .track-artist {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .track-duration {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: 10px;
+    }
+
+    .search-bar-wrap {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .search-bar {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 14px 16px 14px 44px;
+      border-radius: 14px;
+      font-size: 16px;
+      outline: none;
+    }
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+
+    .mini-player {
+      position: fixed;
+      bottom: calc(65px + var(--safe-bottom));
+      left: 12px;
+      right: 12px;
+      background: rgba(28, 26, 44, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      z-index: 100;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+    }
+    .mini-player.hidden { display: none; }
+    .mini-cover {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      object-fit: cover;
+      margin-right: 12px;
+    }
+    .mini-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .mini-title {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .mini-artist {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .player-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 22px;
+      padding: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(65px + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: rgba(14, 13, 23, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 90;
+    }
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      gap: 4px;
+      flex: 1;
+    }
+    .tab-item.active { color: var(--accent); }
+    .tab-icon { font-size: 20px; }
+
+    .now-playing-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(180deg, #26173a 0%, #0e0d17 100%);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      padding: var(--safe-top) 24px calc(24px + var(--safe-bottom)) 24px;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+    .now-playing-modal.open { transform: translateY(0); }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 48px;
+      margin-bottom: 20px;
+    }
+    .modal-cover-wrap {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px 0;
+    }
+    .modal-cover {
+      width: 78vw;
+      max-width: 320px;
+      height: 78vw;
+      max-height: 320px;
+      border-radius: 18px;
+      object-fit: cover;
+      box-shadow: 0 15px 35px rgba(147, 51, 234, 0.25);
+    }
+    .progress-bar {
+      width: 100%;
+      -webkit-appearance: none;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      outline: none;
+      margin: 16px 0 8px 0;
+      cursor: pointer;
+    }
+    .progress-bar::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+    .time-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .modal-controls {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .play-btn-large {
+      width: 68px;
+      height: 68px;
+      background: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      box-shadow: 0 8px 25px rgba(147, 51, 234, 0.5);
+    }
+
+    .tab-page { display: none; }
+    .tab-page.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- Audio Element -->
+  <audio id="audio-player" preload="metadata"></audio>
+
+  <!-- Əsas məzmun sahəsi -->
+  <main class="content-area">
+    
+    <!-- HOME -->
+    <section id="page-home" class="tab-page active">
+      <header class="app-header">
+        <div>
+          <h1 class="brand-title">Waveify</h1>
+          <p style="font-size: 13px; color: var(--text-muted);">Explore & Stream Ad-Free</p>
+        </div>
+      </header>
+
+      <div class="genres-scroll">
+        <button class="genre-chip active" onclick="filterGenre('Trending')">🔥 Trending</button>
+        <button class="genre-chip" onclick="filterGenre('Pop')">Pop</button>
+        <button class="genre-chip" onclick="filterGenre('Hip-Hop')">Hip-Hop</button>
+        <button class="genre-chip" onclick="filterGenre('Rock')">Rock</button>
+        <button class="genre-chip" onclick="filterGenre('Lo-Fi')">Lo-Fi</button>
+      </div>
+
+      <h2 class="section-title">Popular Tracks</h2>
+      <div id="home-track-list"></div>
+    </section>
+
+    <!-- SEARCH -->
+    <section id="page-search" class="tab-page">
+      <h2 class="section-title" style="margin-top:0">Search Music</h2>
+      <div class="search-bar-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" class="search-bar" placeholder="Mahnı və ya ifaçı adı..." autocomplete="off">
+      </div>
+      <div id="search-results">
+        <p style="text-align:center; color: var(--text-muted); margin-top: 40px;">Axtarmaq istədiyiniz mahnını daxil edin</p>
+      </div>
+    </section>
+
+    <!-- LIBRARY -->
+    <section id="page-library" class="tab-page">
+      <h2 class="section-title" style="margin-top:0">Your Library</h2>
+      <div class="track-item" onclick="showFavorites()">
+        <div class="track-cover" style="display:flex;align-items:center;justify-content:center;font-size:22px;background:#e11d48;">❤️</div>
+        <div class="track-info">
+          <div class="track-name">Favorite Songs</div>
+          <div class="track-artist" id="fav-count">0 songs</div>
+        </div>
+      </div>
+      <div id="library-track-list"></div>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="page-profile" class="tab-page">
+      <h2 class="section-title" style="margin-top:0">Settings</h2>
+      <div style="background: var(--bg-surface); padding: 20px; border-radius: 16px; text-align: center; margin-bottom: 20px;">
+        <div style="width: 72px; height: 72px; background: var(--primary); border-radius: 50%; margin: 0 auto 12px; display:flex; align-items:center; justify-content:center; font-size: 32px;">🎵</div>
+        <h3>Waveify Music PWA</h3>
+        <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">Version 1.0</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Mini Player Dock -->
+  <div id="mini-player" class="mini-player hidden" onclick="openNowPlaying()">
+    <img id="mini-cover" class="mini-cover" src="" alt="Album Art">
+    <div class="mini-info">
+      <div id="mini-title" class="mini-title">Song Title</div>
+      <div id="mini-artist" class="mini-artist">Artist</div>
+    </div>
+    <button class="player-btn" onclick="event.stopPropagation(); togglePlayPause()">
+      <span id="mini-play-icon">▶</span>
+    </button>
+    <button class="player-btn" onclick="event.stopPropagation(); playNext()">⏭</button>
+  </div>
+
+  <!-- Alt Menyu (Tab Bar) -->
+  <nav class="tab-bar">
+    <div class="tab-item active" onclick="switchTab('home')">
+      <span class="tab-icon">🏠</span>
+      <span>Home</span>
+    </div>
+    <div class="tab-item" onclick="switchTab('search')">
+      <span class="tab-icon">🔍</span>
+      <span>Search</span>
+    </div>
+    <div class="tab-item" onclick="switchTab('library')">
+      <span class="tab-icon">📚</span>
+      <span>Library</span>
+    </div>
+    <div class="tab-item" onclick="switchTab('profile')">
+      <span class="tab-icon">⚙️</span>
+      <span>Profile</span>
+    </div>
+  </nav>
+
+  <!-- Fullscreen Now Playing Modal -->
+  <div id="now-playing-modal" class="now-playing-modal">
+    <div class="modal-header">
+      <button class="player-btn" onclick="closeNowPlaying()">▼</button>
+      <span style="font-size: 14px; font-weight: 600; color: var(--text-muted);">NOW PLAYING</span>
+      <button class="player-btn" id="fav-btn" onclick="toggleFavoriteCurrent()">🤍</button>
+    </div>
+
+    <div class="modal-cover-wrap">
+      <img id="modal-cover" class="modal-cover" src="" alt="Cover">
+    </div>
+
+    <div style="margin-bottom: 10px;">
+      <h2 id="modal-title" style="font-size: 20px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Song Title</h2>
+      <p id="modal-artist" style="font-size: 15px; color: var(--text-muted); margin-top: 4px;">Artist Name</p>
+    </div>
+
+    <input type="range" id="progress-bar" class="progress-bar" value="0" min="0" max="100" step="0.1">
+    <div class="time-labels">
+      <span id="current-time">0:00</span>
+      <span id="total-duration">0:00</span>
+    </div>
+
+    <div class="modal-controls">
+      <button class="player-btn" onclick="playPrev()" style="font-size: 26px;">⏮</button>
+      <button class="player-btn play-btn-large" onclick="togglePlayPause()">
+        <span id="modal-play-icon">▶</span>
+      </button>
+      <button class="player-btn" onclick="playNext()" style="font-size: 26px;">⏭</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
